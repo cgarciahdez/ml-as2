@@ -283,22 +283,32 @@ def confusion_matrix_nclass(x,y,k,mean,covar,priori,uni=False):
     return confusion_matrix, dict(precision), dict(recall), dict(f_measure), accuracy
 
 
+def print_result(k,uni=False):
+    x,y,k=put_files_together((5,6))
+    if(len(k)==2):
+        precision=[]
+        recall=[]
+        for i in range(1,10):
+            p=cross_validation(x,y,k,th=i/10,uni=uni)
+            print ("The training performance evaluators are:\n"\
+            "Precision: %f\n Recall: %f\n F_measure: %f\n Accuracy: %f\n\n"\
+            "The tesing performance evaluators are:\n"\
+            "Precision: %f\n Recall: %f\n F_measure: %f\n Accuracy: %f\n\n" % (p[0]['p'],p[0]['r'],p[0]['f_m'],p[0]['a'],p[1]['p'],p[1]['r'],p[1]['f_m'],p[1]['a']))
+            precision.append(p[1]['p'])
+            recall.append(p[1]['r'])
+        print (precision)
+        print(recall)
+        plt.plot(recall,precision)
+        plt.show()
+        area = np.trapz(precision,x=recall)
+        print(area)
+        print(1+area)
+    else:
+        print (cross_validation(x,y,k,uni=uni))
+
+
 #x,y,k=load_iris("./data/iris.data.txt",two=True)
-x,y,k=put_files_together((5,6,7))
-print(x.shape)
-if(len(k)==2):
-    precision=[]
-    recall=[]
-    for i in range(1,10):
-        p=cross_validation(x,y,k,th=i/10)
-        precision.append(p[1]['p'])
-        recall.append(p[1]['r'])
-    print (precision)
-    print(recall)
-    plt.plot(recall,precision)
-    plt.show()
-else:
-    print (cross_validation(x,y,k))
+
 
 
 #print (cross_validation(x,y,k,th=1))
