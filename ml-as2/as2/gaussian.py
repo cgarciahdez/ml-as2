@@ -44,7 +44,6 @@ def load_file(name, filt=-1,uni=False):
 #default, which means no filtering happens.
 #Returns: np araay x with feature information and np array y with label information
 def put_files_together(filt=-1,uni=False):
-    print("loading data...")
     x,y=load_file("./data/%d.csv"%1,filt,uni)
     for i in range(2,2):
         xi,yi=load_file("./data/%d.csv"%i,filt,uni)
@@ -57,7 +56,6 @@ def put_files_together(filt=-1,uni=False):
 #in the data
 #Parameters: x-feature dara vector or matrix. y-label data vector
 def estimate_parameters_GDA(x,y,k,uni=False):
-    print("estimating parameters...")
     mean_vec = defaultdict(lambda: np.ndarray(0))
     covar_matrix= defaultdict(lambda: np.ndarray(0))
     prior_class=defaultdict(float)
@@ -71,7 +69,6 @@ def estimate_parameters_GDA(x,y,k,uni=False):
                 sum_x+=x[i]
 
         mean_vec[j]=sum_x/ex_number
-        print()
         for i in range(len(y)):
             if j==y[i]:
                 temp=x[i]-mean_vec[j]
@@ -115,7 +112,6 @@ def g_2class(x,mean,covar,priori,k,th=1,uni=False):
             g_j[j]=-math.log(covar[j])-(x-mean[j])**2/(2*covar[j]**2)+math.log(priori[j])
         else:
             g_j[j]=-math.log(np.linalg.det(covar[j]))-(1/2)*dot(dot((x-mean[j]).T,covar[j]),(x-mean[j]))+math.log(priori[j])
-    #print(dict(g_j))
     if (g_j[k[1]]/g_j[k[0]])>th:
         return k[0]
     else:
@@ -127,9 +123,6 @@ def g_2class(x,mean,covar,priori,k,th=1,uni=False):
 #Parameters: x - vector or matrix, y - vector, k - integer, d - degree, integer.
 #Returns: training and testing RSE's
 def cross_validation(x,y,k,k_f=10,th=1,uni=False):
-    print("cross validating...")
-    #print(len(k))
-
     if len(k)==2:
         traine={'p':0,'r':0,'f_m':0,'a':0}
         teste={'p':0,'r':0,'f_m':0,'a':0}
@@ -141,7 +134,6 @@ def cross_validation(x,y,k,k_f=10,th=1,uni=False):
     kf = KFold(len(x),k_f)
     for train, test in kf:
         mean,covar,priori=(estimate_parameters_GDA(x[train],y[train],k,uni))
-        #print(mean,covar,priori)
 
         if len(k)==2:
             rest=confusion_matrix_2class(x[train],y[train],k,mean,covar,priori,th,uni)
@@ -159,8 +151,6 @@ def cross_validation(x,y,k,k_f=10,th=1,uni=False):
         else:
             rest=confusion_matrix_nclass(x[train],y[train],k,mean,covar,priori,uni)
             rese=confusion_matrix_nclass(x[test],y[test],k,mean,covar,priori,uni)
-            #print(rest)
-            #print(rese)
 
 
             traine["p"]=traine['p']+Counter(rest[1])
@@ -215,7 +205,6 @@ def cross_validation(x,y,k,k_f=10,th=1,uni=False):
 #is univariable or not. False by default.
 #Return: confusion matrix, precision, recall, f_measuer and accuracy.
 def confusion_matrix_2class(x,y,k,mean,covar,priori,th=1,uni=False):
-    print("calculating performance evaluators...")
     tp=0
     tn=0
     fp=0
@@ -223,7 +212,6 @@ def confusion_matrix_2class(x,y,k,mean,covar,priori,th=1,uni=False):
     i=0
     for i in range(0,len(x)):
         g_x=g_2class(x[i],mean,covar,priori,k,th,uni)
-        #print("gx: %f yi: %f"%(g_x,y[i]))
         if g_x == k[0]:
             if y[i]==k[0]:
                 tp+=1
@@ -236,7 +224,6 @@ def confusion_matrix_2class(x,y,k,mean,covar,priori,th=1,uni=False):
                 fn+=1
 
     confusion_matrix = [[tp,fp],[fn,tn]]
-    print(confusion_matrix)
     precision = 0 if (tp+fp)==0 else tp/(tp+fp) 
     recall = 0 if (tp+fn)==0 else tp/(tp+fn)
     f_measure = 0 if (precision==0 or recall==0) else 2/((1/precision)+(1/recall))
@@ -252,7 +239,6 @@ def confusion_matrix_2class(x,y,k,mean,covar,priori,th=1,uni=False):
 #is univariable or not. False by default.
 #Return: confusion matrix, precision, recall, f_measuer and accuracy.
 def confusion_matrix_nclass(x,y,k,mean,covar,priori,uni=False):
-    print("calculating performance evaluators...")
     n = defaultdict(int)   #Dictionary to assign temporary indexes to each class
     for j in range(0,len(k)):
         n[k[j]]=j
@@ -284,8 +270,14 @@ def confusion_matrix_nclass(x,y,k,mean,covar,priori,uni=False):
 
 
 def print_result(k,uni=False):
-    x,y,k=put_files_together((5,6))
-    if(len(k)==2):
+    x,y,k=put_files_together(k,uni=uni)
+    if uni:
+        p= (cross_validation(x,y,k,uni=uni))
+        print ("The training performance evaluators are:\n"\
+        "Precision: %f\n Recall: %f\n F_measure: %f\n Accuracy: %f\n\n"\
+        "The tesing performance evaluators are:\n"\
+        "Precision: %f\n Recall: %f\n F_measure: %f\n Accuracy: %f\n\n" % (p[0]['p'],p[0]['r'],p[0]['f_m'],p[0]['a'],p[1]['p'],p[1]['r'],p[1]['f_m'],p[1]['a']))
+    elif(len(k)==2):
         precision=[]
         recall=[]
         for i in range(1,10):
@@ -296,15 +288,24 @@ def print_result(k,uni=False):
             "Precision: %f\n Recall: %f\n F_measure: %f\n Accuracy: %f\n\n" % (p[0]['p'],p[0]['r'],p[0]['f_m'],p[0]['a'],p[1]['p'],p[1]['r'],p[1]['f_m'],p[1]['a']))
             precision.append(p[1]['p'])
             recall.append(p[1]['r'])
-        print (precision)
-        print(recall)
         plt.plot(recall,precision)
         plt.show()
         area = np.trapz(precision,x=recall)
-        print(area)
-        print(1+area)
+        print("Area under the curve: %f"%(1+area))
     else:
-        print (cross_validation(x,y,k,uni=uni))
+        p = (cross_validation(x,y,k,uni=uni))
+        for j in k:
+            print("Results for class %d"%j)
+            print ("The training performance evaluators are:\n"\
+            "Precision: %f\n Recall: %f\n F_measure: %f\n\n"\
+            "The tesing performance evaluators are:\n"\
+            "Precision: %f\n Recall: %f\n F_measure: %f\n\n" % (p[0]['p'][j],p[0]['r'][j],p[0]['f_m'][j],p[1]['p'][j],p[1]['r'][j],p[1]['f_m'][j]))
+        print ("Training Accuracy: %f\nTesting Accuracy: %f"%(p[0]['a'],p[1]['a']))
+    
+
+#print_result((1,2),True)
+#print_result((5,6))
+print_result((5,6,2))
 
 
 #x,y,k=load_iris("./data/iris.data.txt",two=True)

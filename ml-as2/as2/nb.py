@@ -133,7 +133,7 @@ def confusion_matrix(x,y,alpha,priori,bino=False):
 #evaluators of the NB classifier
 #Parameters: x - feature matrix, y - label vector, k - number of folds. e: smoothing factor
 #bino: True if features are binomial. If False, it is assumed they are binary 
-#Returns: training and testing RSE's
+#Returns: evaluators for trianing and testing
 def cross_validation(x,y,k_f=10,e=0.00000000000000001,bino=False):
 
     traine={'p':0,'r':0,'f_m':0,'a':0}
