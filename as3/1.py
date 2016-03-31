@@ -10,17 +10,6 @@ from sklearn.cross_validation import KFold
 from collections import defaultdict
 from collections import Counter
 
-
-
-
-
-def find_first(item, vec):
-    """return the index of the first occurence of item in vec"""
-    for i in range(len(vec)):
-        if item == vec[i]:
-            return i
-    return -1
-
 def load_data(two_class=False,d=1):
 	poly = PolynomialFeatures(degree=d)
 	mnist = fetch_mldata('MNIST original')
@@ -33,12 +22,10 @@ def load_data(two_class=False,d=1):
 		ind = [ k for k in range(len(y)) if (y[k]==0 or y[k]==1) ]
 		X=X[ind,:]
 		y=y[ind]
-		# print(find_first(1,y))
-		# print(len(y)/2)
-	#X = np.insert(X,0,1,axis=1)
+	y=[int(p) for p in y]
 	X=poly.fit_transform(X)
 
-	return X,y
+	return np.array(X),np.array(y)
 
 def load_iris(two_class=False,d=1):
 	poly = PolynomialFeatures(degree=d)
@@ -81,8 +68,8 @@ def gradient_descent_two_class(X,y):
 		theta = theta - step*summ
 		diff=np.average(np.absolute(theta_o-theta))
 		print (diff)
-		to=np.average(theta_o)
-		t=np.average(theta)
+		# to=np.average(theta_o)
+		# t=np.average(theta)
 		# if t<to:
 		# 	step=step*1.05
 		# else:
@@ -111,13 +98,6 @@ def gradient_descent_k_class(X,y):
 			theta_i[j] = theta_i[j] - step*summ[j]
 		diff=np.average(np.absolute(theta_o-theta_i))
 		print (diff)
-		#to=np.average(theta_o)
-		#t=np.average(theta_i)
-		# if t<to:
-		# 	step=step*1.05
-		# else:
-		# 	theta=theta_o
-		# 	step=step*0.5
 	return theta_i
 
 def h_k(x,theta):
@@ -179,12 +159,12 @@ def confusion_matrix_2(X,y,theta):
 
     return confusion_matrix, precision, recall, f_measure, accuracy
 
-def confusion_matrix_k(X,y,theta):
-	k = set(y)
+def confusion_matrix_k(X,y,theta,k):
 	confusion_matrix = np.zeros((len(k),len(k)), dtype=float)
 
 	for i in range(0,len(X)):
 		y_hat = classify_k(X[i],theta)
+		#pdb.set_trace()
 		confusion_matrix[y_hat][y[i]]+=1
 
 	precision = defaultdict(float)
@@ -207,40 +187,6 @@ def confusion_matrix_k(X,y,theta):
 
 	return confusion_matrix, dict(precision), dict(recall), dict(f_measure), accuracy
 
-
-# def cross_validation(X,y,k_f=10):
-# 	traine={'p':0,'r':0,'f_m':0,'a':0}
-# 	teste={'p':0,'r':0,'f_m':0,'a':0}
-
-# 	kf = KFold(len(X),k_f)
-# 	for train, test in kf:
-# 	    theta = (gradient_descent_two_class(X[train],y[train]))
-# 	    #print(mean,covar,priori)
-
-# 	    rest=confusion_matrix_2(X[train],y[train],theta)
-# 	    rese=confusion_matrix_2(X[test],y[test],theta)
-
-# 	    traine["p"]+=rest[1]
-# 	    traine["r"]+=rest[2]
-# 	    traine["f_m"]+=rest[3]
-# 	    traine["a"]+=rest[4]
-
-# 	    teste["p"]+=rese[1]
-# 	    teste["r"]+=rese[2]
-# 	    teste["f_m"]+=rese[3]
-# 	    teste["a"]+=rese[4]
-
-# 	traine["p"]/=k_f
-# 	traine["r"]/=k_f
-# 	traine["f_m"]/=k_f
-# 	traine["a"]/=k_f
-
-# 	teste["p"]/=k_f
-# 	teste["r"]/=k_f
-# 	teste["f_m"]/=k_f
-# 	teste["a"]/=k_f
-
-# 	return traine, teste
 
 def cross_validation(X,y,k_f=10):
 	k=set(y)
@@ -271,8 +217,8 @@ def cross_validation(X,y,k_f=10):
 			teste["a"]+=rese[4]
 		else:
 			theta = (gradient_descent_k_class(X[train],y[train]))
-			rest=confusion_matrix_k(X[train],y[train],theta)
-			rese=confusion_matrix_k(X[test],y[test],theta)
+			rest=confusion_matrix_k(X[train],y[train],theta,k)
+			rese=confusion_matrix_k(X[test],y[test],theta,k)
 
 			traine["p"]=traine['p']+Counter(rest[1])
 			traine["r"]=traine['r']+Counter(rest[2])
@@ -319,8 +265,14 @@ def cross_validation(X,y,k_f=10):
 	return traine, teste
 
 
-def print_result(two_class=False,d=1):
-	X,y=load_iris(two_class=two_class,d=d)
+def print_result(two_class=False,d=1,iris=True):
+	if iris:
+		X,y=load_iris(two_class=two_class,d=d)
+	else:
+		X,y=load_data(two_class=two_class,d=d)
+		X, y = shuffle(X, y, random_state=0)
+		X=X[:500]
+		y=y[:500]
 	k=set(y)
 	if(len(k)==2):
 		p=cross_validation(X,y)
@@ -338,35 +290,5 @@ def print_result(two_class=False,d=1):
 			"Precision: %f\n Recall: %f\n F_measure: %f\n\n" % (p[0]['p'][j],p[0]['r'][j],p[0]['f_m'][j],p[1]['p'][j],p[1]['r'][j],p[1]['f_m'][j]))
 		print ("Training Accuracy: %f\nTesting Accuracy: %f"%(p[0]['a'],p[1]['a']))
 
-# X,y=load_data(True)
-# X, y = shuffle(X, y, random_state=0)
-# theta = (gradient_descent_two_class(X,y))
-# print(cross_validation(X,y))
 
-X,y=load_iris(True,2)
-# X, y = shuffle(X, y, random_state=0)
-# theta = (gradient_descent_k_class(X,y))
-#print(cross_validation(X,y))
-
-print_result()
-
-
-
-
-
-
-
-
-# X_train, X_test = X[:60000], X[60000:]
-# y_train, y_test = y[:60000], y[60000:]
-# X_train.shape
-# y_train.shape
-# size=len(y_train)
-
-# ## extract "3" digits and show their average"
-# ind = [ k for k in range(size) if y_train[k]==3 ]
-# extracted_images=X_train[ind,:]
-
-# mean_image=extracted_images.mean(axis=0)
-# imshow(mean_image.reshape(28,28), cmap=cm.gray)
-# show()
+print_result(False)
