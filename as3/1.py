@@ -10,6 +10,10 @@ from sklearn.cross_validation import KFold
 from collections import defaultdict
 from collections import Counter
 
+#
+#This function loads MNIST into to np arrays x and y.
+#Params: two class true if only two classes d degree (for mapping)
+#Returns: nparray x with feature information and nparray y with label information
 def load_data(two_class=False,d=1):
 	poly = PolynomialFeatures(degree=d)
 	mnist = fetch_mldata('MNIST original')
@@ -27,6 +31,10 @@ def load_data(two_class=False,d=1):
 
 	return np.array(X),np.array(y)
 
+#
+#This function loads iris dataset into to np arrays x and y.
+#Params: two class true if only two classes d degree (for mapping)
+#Returns: nparray x with feature information and nparray y with label information
 def load_iris(two_class=False,d=1):
 	poly = PolynomialFeatures(degree=d)
 	file = open("./data/iris.data.txt",'r').readlines()
@@ -52,11 +60,10 @@ def load_iris(two_class=False,d=1):
 	x=poly.fit_transform(x)
 	return np.array(x), np.array(y)
 
-#theta_ = Initial theta.
-def gradient_descent_two_class(X,y):
-	#cdef float theta
-	#cdef float summ
-	
+#This function computes the parameters for the logistic regression with two classes
+#X y data
+#Returns theta vector
+def gradient_descent_two_class(X,y):	
 	theta = [0.01]*len(X[0])
 	diff=10
 	step=0.0005
@@ -67,7 +74,6 @@ def gradient_descent_two_class(X,y):
 		theta_o = theta
 		theta = theta - step*summ
 		diff=np.average(np.absolute(theta_o-theta))
-		print (diff)
 		# to=np.average(theta_o)
 		# t=np.average(theta)
 		# if t<to:
@@ -77,6 +83,9 @@ def gradient_descent_two_class(X,y):
 		# 	step=step*0.5
 	return theta
 
+#This function computes the parameters for the logistic regression with k classes
+#X y data
+#Returns theta vector
 def gradient_descent_k_class(X,y):
 	k=set(y)
 	
@@ -97,9 +106,12 @@ def gradient_descent_k_class(X,y):
 		for j in range(0,len(theta_i)):
 			theta_i[j] = theta_i[j] - step*summ[j]
 		diff=np.average(np.absolute(theta_o-theta_i))
-		print (diff)
 	return theta_i
 
+#
+#Params: feature vector x, theta vector
+#Computes the sigmoid function
+#Returns: vector of h values for each class
 def h_k(x,theta):
 	exps = [] 
 	for j in range(0,len(theta)):
@@ -108,12 +120,18 @@ def h_k(x,theta):
 	summ = sum(exps)
 	return [x / summ for x in exps]
 
+#
+#Params: feature vector x, theta vector
+#Computes the softmax function
+#Returns: h value
 def h(x,theta):
 	h = - np.dot(np.transpose(theta),x)
 	h = np.exp(h)
 	h= 1/(1+h)
 	return h
 
+#
+#Classifies an x in one of two classes
 def classify(x,theta):
 	h_ = h(x,theta)
 	if h_<0.5:
@@ -122,6 +140,7 @@ def classify(x,theta):
 		return 1
 
 #Theta is a vector
+#Classifies an x example in one of k classes
 def classify_k(x,theta):
 	y_hat=defaultdict(float)
 	for j in range(len(theta)):
@@ -130,8 +149,13 @@ def classify_k(x,theta):
 	s= sorted(y_hat.items(), key=lambda x: x[1], reverse=True)
 	return s[0][0]
 
-
-
+#
+#Computes classifier performance evaluators given the parameters and the featue (x) and
+#original label data (y).
+#Parameters: x: feature matrix or vector. y: label vector. mean: mean vector.
+#covar: covariance matrix. priori: priori class vector. uni: defines if the data
+#is univariable or not. False by default.
+#Return: confusion matrix, precision, recall, f_measuer and accuracy.
 def confusion_matrix_2(X,y,theta):
     tp=0
     tn=0
@@ -159,6 +183,11 @@ def confusion_matrix_2(X,y,theta):
 
     return confusion_matrix, precision, recall, f_measure, accuracy
 
+#
+#Computes classifier performance evaluators given the parameters and the featue (x) and
+#original label data (y).
+#Parameters: x: feature matrix or vector. y: label vector. theta: theta vector.
+#Return: confusion matrix, precision, recall, f_measuer and accuracy.
 def confusion_matrix_k(X,y,theta,k):
 	confusion_matrix = np.zeros((len(k),len(k)), dtype=float)
 
@@ -187,7 +216,11 @@ def confusion_matrix_k(X,y,theta,k):
 
 	return confusion_matrix, dict(precision), dict(recall), dict(f_measure), accuracy
 
-
+#
+#This function performs crossvalidation to find the average training and testing evaluators
+#given data , given a degree and a k-factor.
+#Parameters: x - vector or matrix, y - vector
+#Returns: accuracies
 def cross_validation(X,y,k_f=10):
 	k=set(y)
 	if len(k)==2:
@@ -271,8 +304,8 @@ def print_result(two_class=False,d=1,iris=True):
 	else:
 		X,y=load_data(two_class=two_class,d=d)
 		X, y = shuffle(X, y, random_state=0)
-		X=X[:500]
-		y=y[:500]
+		X=X[:100,:5]
+		y=y[:100]
 	k=set(y)
 	if(len(k)==2):
 		p=cross_validation(X,y)
@@ -290,5 +323,16 @@ def print_result(two_class=False,d=1,iris=True):
 			"Precision: %f\n Recall: %f\n F_measure: %f\n\n" % (p[0]['p'][j],p[0]['r'][j],p[0]['f_m'][j],p[1]['p'][j],p[1]['r'][j],p[1]['f_m'][j]))
 		print ("Training Accuracy: %f\nTesting Accuracy: %f"%(p[0]['a'],p[1]['a']))
 
-
+print("\n\nTwo class logistic regression:")
+print_result(True)
+print("\n\nTwo class logistic regression with second degre")
+print_result(True,2)
+print("\n\nK class logistic regression")
 print_result(False)
+
+
+
+
+
+
+

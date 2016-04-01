@@ -9,8 +9,12 @@ from sklearn.utils import shuffle
 from sklearn.cross_validation import KFold
 from collections import defaultdict
 from collections import Counter
+from sklearn.neural_network import MLPClassifier
 
-
+#
+#This function loads MNIST into to np arrays x and y.
+#Params: two class true if only two classes d degree (for mapping)
+#Returns: nparray x with feature information and nparray y with label information
 def load_data(two_class=False,d=1):
 	poly = PolynomialFeatures(degree=d)
 	mnist = fetch_mldata('MNIST original')
@@ -27,6 +31,10 @@ def load_data(two_class=False,d=1):
 
 	return np.array(X),np.array(y)
 
+#
+#This function loads iris dataset into to np arrays x and y.
+#Params: two class true if only two classes d degree (for mapping)
+#Returns: nparray x with feature information and nparray y with label information
 def load_iris(two_class=False,d=1):
 	poly = PolynomialFeatures(degree=d)
 	file = open("./data/iris.data.txt",'r').readlines()
@@ -52,7 +60,10 @@ def load_iris(two_class=False,d=1):
 	x=poly.fit_transform(x)
 	return np.array(x), np.array(y)
 
-#q_z = quantity of z
+#
+#This function computes the parameters for the logistic regression with k classes
+#X y data
+#Returns v and w vectors
 def gradient_descent_k_class(X,y,q_z,beta=0.5,l_r=0.00001):
 	k=set(y)
 	
@@ -80,7 +91,7 @@ def gradient_descent_k_class(X,y,q_z,beta=0.5,l_r=0.00001):
 	obj_i=-obj_i
 
 	it=0
-	while(diff>1e-3 and it<500):
+	while(diff>1e-3 and it<200):
 		it+=1
 		summ_v=defaultdict(float)
 		summ_w=defaultdict(float)
@@ -132,12 +143,12 @@ def gradient_descent_k_class(X,y,q_z,beta=0.5,l_r=0.00001):
 
 		diff=(np.absolute(obj_o-obj_i))
 
-
-
-		print (diff)
 	return v_i, w_i
 
-
+#
+#Params: feature vector x, theta vector
+#Computes the sigmoid function
+#Returns: vector of h values for each class
 def h_k(x,theta):
 	exps = [] 
 	for j in range(0,len(theta)):
@@ -146,13 +157,18 @@ def h_k(x,theta):
 	summ = sum(exps)
 	return [x / summ for x in exps]
 
+#
+#Params: feature vector x, theta vector
+#Computes the softmax function
+#Returns: h value
 def h(x,theta):
 	h = - np.dot(np.transpose(theta),x)
 	h = np.exp(h)
 	h= 1/(1+h)
 	return h
 
-
+#
+#Classifies an x example in one of k classes
 def classify(x,w,v):
 	q_z=len(w)
 	z=[]	
@@ -168,6 +184,11 @@ def classify(x,w,v):
 			best=j
 	return best
 
+#
+#Computes classifier performance evaluators given the parameters and the featue (x) and
+#original label data (y).
+#Parameters: x: feature matrix or vector. y: label vector. theta: theta vector.
+#Return: confusion matrix, precision, recall, f_measuer and accuracy.
 def confusion_matrix_k(X,y,w,v,k):
 	confusion_matrix = np.zeros((len(k),len(k)), dtype=float)
 	for i in range(0,len(X)):
@@ -194,6 +215,11 @@ def confusion_matrix_k(X,y,w,v,k):
 
 	return confusion_matrix, (precision), (recall), (f_measure), accuracy
 
+#
+#This function performs crossvalidation to find the average training and testing evaluators
+#given data , given a degree and a k-factor.
+#Parameters: x - vector or matrix, y - vector
+#Returns: accuracies
 def cross_validation(X,y,q_z,beta=0.5,l_r=0.0001,k_f=10):
 	k=set(y)
 	traine={'p':Counter({}),'r':Counter({}),'f_m':Counter({}),'a':0}
@@ -238,6 +264,10 @@ def cross_validation(X,y,q_z,beta=0.5,l_r=0.0001,k_f=10):
 
 	return traine, teste
 
+#
+#PErforms cross validation for the scikit method.
+#Params: same as other one
+#Return: testing ans training accuracy
 def scikit_method(X,y,q_z,l_r,beta=0.9,k_f=10):
 	
 	train_acc=0
@@ -267,7 +297,7 @@ def print_result(q_z,l_r=0.0001,two_class=False,d=1,iris=True):
 	else:
 		X,y=load_data(two_class=two_class,d=d)
 		X, y = shuffle(X, y, random_state=0)
-		X=X[:200,:20]
+		X=X[:200,:10]
 		y=y[:200]
 	k=set(y)
 	if(len(k)==2):
@@ -278,30 +308,64 @@ def print_result(q_z,l_r=0.0001,two_class=False,d=1,iris=True):
 		"Precision: %f\n Recall: %f\n F_measure: %f\n Accuracy: %f\n\n" % (p[0]['p'],p[0]['r'],p[0]['f_m'],p[0]['a'],p[1]['p'],p[1]['r'],p[1]['f_m'],p[1]['a']))
 	else:
 		p=cross_validation(X,y,q_z,beta=0.5,l_r=l_r)
-		print(p)
-		for j in k:
-			print("Results for class %d"%j)
-			print ("The training performance evaluators are:\n"\
-			"Precision: %f\n Recall: %f\n F_measure: %f\n\n"\
-			"The tesing performance evaluators are:\n"\
-			"Precision: %f\n Recall: %f\n F_measure: %f\n\n" % (p[0]['p'][j],p[0]['r'][j],p[0]['f_m'][j],p[1]['p'][j],p[1]['r'][j],p[1]['f_m'][j]))
-		print ("Training Accuracy: %f\nTesting Accuracy: %f"%(p[0]['a'],p[1]['a']))
+		print ("Manual Training Accuracy: %f\nManual Testing Accuracy: %f"%(p[0]['a'],p[1]['a']))
 
 
 
-X,y=load_iris()
+X,y=load_data()
+X, y = shuffle(X, y, random_state=0)
+X=X[:200,:10]
+y=y[:200]
 
-#X,y=load_data()
 
-# X, y = shuffle(X, y, random_state=0)
-# X=X[:200,:20]
-# y=y[:200]
+q_z=int((len(X[0])+len(set(y)))/2)
+print("\nWith %d cells in hidden layer"%q_z)
+print("Manual:")
+print_result(q_z,l_r=0.0001,iris=False)
+print("Scikit:")
+scikit_method(X,y,q_z,l_r=0.0001,beta=0.5,k_f=10)
+
+
+q_z=int((len(X[0])+len(set(y))))
+print("\nWith %d cells in hidden layer"%q_z)
+print("Manual:")
+print_result(q_z,l_r=0.0001,iris=False)
+print("Scikit:")
+scikit_method(X,y,q_z,l_r=0.0001,beta=0.5,k_f=10)
+
+q_z=int((len(X[0])+len(set(y)))*1.5)
+print("\nWith %d cells in hidden layer"%q_z)
+print("Manual:")
+print_result(q_z,l_r=0.0001,iris=False)
+print("Scikit:")
+scikit_method(X,y,q_z,l_r=0.0001,beta=0.5,k_f=10)
+
+
 
 
 
 q_z=int((len(X[0])+len(set(y)))/2)
-#print(gradient_descent_k_class(x,y,q_z,beta=0.5,l_r=0.0001))
-print_result(q_z)
 
+q=0.0001
+print("\nWith a %f learning rate"%q)
+print("Manual:")
+print_result(q_z,l_r=q,iris=False)
+print("Scikit:")
+scikit_method(X,y,q_z,l_r=q,beta=0.5,k_f=10)
+
+
+q=0.01
+print("\nWith a %f learning rate"%q)
+print("Manual:")
+print_result(q_z,l_r=q,iris=False)
+print("Scikit:")
+scikit_method(X,y,q_z,l_r=q,beta=0.5,k_f=10)
+
+q=0.000001
+print("\nWith a %f learning rate"%q)
+print("Manual:")
+print_result(q_z,l_r=q,iris=False)
+print("Scikit:")
+scikit_method(X,y,q_z,l_r=q,beta=0.5,k_f=10)
 
 
